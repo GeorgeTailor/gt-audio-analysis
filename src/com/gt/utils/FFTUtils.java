@@ -111,7 +111,18 @@ public class FFTUtils {
 	public static void deleteFrequenciesFromSpectrum(Integer index, Double amplitude, List<Double> spectrum){
 		spectrum.set(index, 0d);
 	}
-	public static DefaultTableXYDataset performFFTonSamples(double[] input) {
+	public static List<Double> performParametrizedFFTonSamples(double[] input, boolean fullScan) {
+
+		DoubleFFT_1D fftDo = new DoubleFFT_1D(input.length);
+		double[] fft = new double[input.length * 2];
+		System.arraycopy(input, 0, fft, 0, input.length);
+		fftDo.realForwardFull(fft);
+
+		List<Double> spectrum = FFTUtils.computePowerSpectrum(fft);
+
+		return spectrum;
+	}
+	public static DefaultTableXYDataset performFFTonSamples(double[] input, boolean fullScan) {
 		DefaultTableXYDataset dataset = new DefaultTableXYDataset();
 
 		DoubleFFT_1D fftDo = new DoubleFFT_1D(input.length);
@@ -129,12 +140,16 @@ public class FFTUtils {
 		Map<Integer, Map<Integer, Double>> separatedFFT = 
 				noteSeparator.separateNotes(0, HPS.findIndexOfMax(spectrum), spectrum);
 
-		for (Map.Entry<Integer, Map<Integer, Double>> entry : separatedFFT.entrySet()) {
-			if (entry.getValue() == null) {
-				System.out.println("Found null " + entry.getKey() + " with value " + entry.getValue());
-			} else {
-				dataset.addSeries(ChartUtils.prepareXYSeries(entry.getValue()));
+		if(!fullScan){
+			for (Map.Entry<Integer, Map<Integer, Double>> entry : separatedFFT.entrySet()) {
+				if (entry.getValue() == null) {
+					System.out.println("Found null " + entry.getKey() + " with value " + entry.getValue());
+				} else {
+					dataset.addSeries(ChartUtils.prepareXYSeries(entry.getValue()));
+				}
 			}
+		} else {
+			dataset.addSeries(ChartUtils.prepareFullXYSeries(spectrum));
 		}
 		System.out.println();
 		return dataset;

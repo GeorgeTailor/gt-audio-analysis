@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JScrollPane;
@@ -111,6 +112,15 @@ public class ChartUtils {
 		HarmonicsByIndexFinder.printNotes();
 		HarmonicsByIndexFinder.clearMap();
 		System.out.println("Max frequency = " + frequency + " at index " + maxIndex);
+		return xyseries;
+	}
+	
+	public static XYSeries prepareFullXYSeries(List<Double> spectrum){
+		XYSeries xyseries = new XYSeries("Guitar D#m7", false, false);
+		for(int i=0;i<spectrum.size();i++){
+			if(i < 10000)
+				xyseries.add(i,spectrum.get(i));
+		}
 		return xyseries;
 	}
 }

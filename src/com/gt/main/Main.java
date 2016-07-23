@@ -3,6 +3,12 @@ package com.gt.main;
 import java.awt.Dimension;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -16,6 +22,8 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 
+import com.badlogic.audio.io.Decoder;
+import com.badlogic.audio.io.MP3Decoder;
 import com.badlogic.audio.io.WaveDecoder;
 import com.gt.note.harmonic.finder.HarmonicsByIndexFinder;
 import com.gt.user.UserInterface;
@@ -77,7 +85,7 @@ public class Main extends ApplicationFrame {
 			// WindowUtils.lanczos(samples);// creates unreal peaks
 			// WindowUtils.hann(samples);// creates unreal peaks
 			// WindowUtils.gauss(samples);// creates unreal peaks
-			DefaultTableXYDataset dataset1 = FFTUtils.performFFTonSamples(samples);
+			DefaultTableXYDataset dataset1 = FFTUtils.performFFTonSamples(samples, true);
 			chart.getXYPlot().setDataset(dataset1);
 		}
 		HarmonicsByIndexFinder.printNotes();
@@ -88,10 +96,67 @@ public class Main extends ApplicationFrame {
 		 */
 		return dataset;
 	}
+	
+	public static void createParametrizedDataset(String filePath) throws Exception {
+		
+		Decoder decoder = null;
+		WaveDecoder waveDecoder = null;
+		if(filePath.endsWith(".mp3")){
+			decoder = new MP3Decoder( new FileInputStream(filePath));
+		} else if (filePath.endsWith(".wav")){
+			waveDecoder = new WaveDecoder( new FileInputStream(filePath));
+		}
+
+		double[] samples = new double[8096];
+		
+		List<Double> powerSpectrum = new ArrayList<>();
+		
+		Path audioFile = Paths.get(filePath);
+		String fileName = audioFile.getFileName().toString();
+		int index = fileName.indexOf(".wav");
+		if(index > 0){
+			fileName = fileName.replace(".wav", ".txt");
+		}
+
+		FileWriter writer = new FileWriter(fileName); 
+		
+		int counter = 0;
+		if(filePath.endsWith(".mp3")){
+			while (decoder.readSamples(samples) > 0) {
+				counter++;
+				WindowUtils.blackmanHarrisNutall(samples); // creates unreal peaks
+				powerSpectrum = FFTUtils.performParametrizedFFTonSamples(samples, true);		
+				writeDataToFile(powerSpectrum, filePath, counter, writer);
+				if(counter == 2)
+					counter = 0;
+			}
+		} else if (filePath.endsWith(".wav")){
+			while (waveDecoder.readSamples(samples) > 0) {
+				counter++;
+				WindowUtils.blackmanHarrisNutall(samples); // creates unreal peaks
+				powerSpectrum = FFTUtils.performParametrizedFFTonSamples(samples, true);
+				writeDataToFile(powerSpectrum, filePath, counter, writer);
+				if(counter == 2)
+					counter = 0;
+			}
+		}		
+		writer.close();
+	}
+
+	private static void writeDataToFile(List<Double> powerSpectrum, String filePath, int counter, FileWriter writer) throws IOException {		
+		for (Double myDouble : powerSpectrum) { 
+			writer.write(String.valueOf(myDouble) + " ");
+		}				
+		if(counter == 2)
+			writer.write("\n");
+	}
 
 	public static void main(String[] args) throws Exception {
 		//usersMode();
 		developersMode();
+	}
+	public static void generetaFileWithFrequencies(String filePath) throws Exception{
+		createParametrizedDataset(filePath);
 	}
 	private static void usersMode() throws Exception{
 		UserInterface.main(null);
